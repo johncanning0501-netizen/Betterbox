@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Limelight&display=swap" rel="stylesheet">
+</head>
+<body class="accountPage">
+
+    <div class="navbar">
+        <h2 id="betterbox">BetterBox</h2>
+
+        <div class="nav-links">
+            <a class="link" href="index.html">Home</a>
+            <a class="link" id="logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="profileContainer">
+        <div class="profileInfo">
+            <h3 id="pageTitle"></h3>
+
+            <div id="profilePic" class="profilePic"></div>
+
+            <p><strong>Account Created: </strong><span id="createdAt"></span></p>
+            <p><strong>Reviews Left: </strong><span id="reviewCount"></span></p>
+            <p><strong>Average Rating Given: </strong><span id="avgRating"></span></p>
+
+
+        </div>
+        
+        <hr class="profileDivider">    
+        
+        <div class="profileReviews">
+            <div id="userReviews"></div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script>
+    //display user info
+    const userInfo = document.getElementById("user-info");
+    const userReviews = document.getElementById("userReviews");
+    const pageTitle = document.getElementById("pageTitle");
+    const loggedInUser = JSON.parse(localStorage.getItem("loggedInUser"));
+
+
+    async function userPage(){
+        const urlParams = new URLSearchParams(window.location.search);
+        const usernameParam = urlParams.get("username");
+
+        //get which user to display, either encoded user param or the logged in user
+        const usernameToDisplay = usernameParam || (loggedInUser && loggedInUser.username);
+
+        //get from database
+        const db = await getJSONData();
+        const user = db.users.find(u => u.username === usernameToDisplay);
+
+        if(loggedInUser && loggedInUser.username === user.username){
+            pageTitle.textContent = "Your Profile";
+        } else {
+            pageTitle.textContent = `${user.username}'s Profile`;
+        }
+
+        const logoutButton = document.getElementById("logout");
+        if(!loggedInUser || loggedInUser.username !== user.username){
+            logoutButton.style.display = "none";
+        }
+
+        //fill in info
+        document.getElementById("createdAt").textContent =
+            new Date(user.createdAt).toLocaleDateString();
+
+        document.getElementById("reviewCount").textContent =
+            user.reviews.length;
+
+        if(user.reviews.length > 0){
+            var sum = 0;
+            for(var i =0; i<user.reviews.length; i++){
+                sum += user.reviews[i].rating;
+            }
+            var avg = sum/user.reviews.length;
+            document.getElementById("avgRating").textContent = avg.toFixed(1) + "/10";
+        }else{
+            document.getElementById("avgRating").textContent = "N/A";
+        }
+
+        //display user reviews
+        if(user.reviews && user.reviews.length > 0) {
+            userReviews.innerHTML = "<h4>Reviews:</h4>";
+            const ul = document.createElement("ul");
+            user.reviews.forEach(review => {
+                const li = document.createElement("li");
+                li.classList.add("review");
+
+                const movieLink = document.createElement("a");
+                movieLink.textContent = review.title;
+                movieLink.href = `movie.html?id=${review.movieId}`;
+                movieLink.style.color = "white";
+                movieLink.classList.add("link", "no-margin");
+
+                li.appendChild(movieLink);
+                li.appendChild(document.createTextNode(` - Rating: ${review.rating}/10 - ${review.reviewText}`));
+                ul.appendChild(li);
+            });
+            userReviews.appendChild(ul);
+        } else{
+            userReviews.innerHTML = "<p>You have not left any reviews yet</p>";
+        }
+    }
+    userPage();
+
+    //logout button
+    document.getElementById("logout").addEventListener("click", async() =>{
+        localStorage.removeItem("loggedInUser");
+        window.location.href = "index.html";
+    });
+
+    
+
+    </script>
+</body>
+</html>
